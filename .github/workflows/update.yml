@@ -2,38 +2,32 @@ name: Update leaderboard
 
 on:
   schedule:
-    - cron: "*/10 * * * *"  # every 10 minutes
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: write  # allow committing updated files
+      contents: write
 
     steps:
-      # 1️ Checkout repo
       - uses: actions/checkout@v3
 
-      # 2️ Set up Python
       - uses: actions/setup-python@v4
         with:
           python-version: "3.x"
 
-      # 3️ Install Playwright
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install playwright
-          playwright install  # install browser binaries
+          pip install requests beautifulsoup4 playwright
+          playwright install
 
-      # 4️ Run Python scraper
       - name: Run leaderboard script
         run: python fetch_leaderboard.py
 
-      # 5️ Commit updated leaderboard
-      - name: Commit changes
+      - name: Commit updated HTML
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
