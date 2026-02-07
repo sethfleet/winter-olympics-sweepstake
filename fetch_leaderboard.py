@@ -2,45 +2,80 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
-from playwright.sync_api import sync_playwright
 
-# Official 2026 Winter Olympics medal table
-URL = "https://www.olympics.com/en/milano-cortina-2026/medals"
+# URL of BBC Sport 2026 Winter Olympics medal table
+BBC_MEDAL_URL = "https://www.bbc.co.uk/sport/winter-olympics/italy-2026/medals"
 
-def fetch_medal_data():
-    """
-    Uses Playwright to render the page and extract current 2026 medals.
-    Returns a dictionary of {country_code: {"gold":.., "silver":.., "bronze":.., "total":..}}
-    """
+# Mapping from country name (BBC) → IOC code
+COUNTRY_TO_IOC = {
+    "United States": "USA",
+    "Great Britain": "GBR",
+    "Norway": "NOR",
+    "Germany": "GER",
+    "Italy": "ITA",
+    "Canada": "CAN",
+    "France": "FRA",
+    "Sweden": "SWE",
+    "Switzerland": "SUI",
+    "Netherlands": "NED",
+    "Japan": "JPN",
+    "China": "CHN",
+    "South Korea": "KOR",
+    "Czech Republic": "CZE",
+    "Austria": "AUT",
+    "Slovenia": "SLO",
+    "Russia": "RUS",
+    "Finland": "FIN",
+    "Poland": "POL",
+    "Australia": "AUS",
+    "Belgium": "BEL",
+    "Hungary": "HUN",
+    "Spain": "ESP",
+    "Latvia": "LAT"
+    # add more as needed
+}
+
+def fetch_medal_data_bbc():
+    """Scrape BBC Sport medal table for 2026 Winter Olympics."""
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "en-GB,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+    }
+
+    r = requests.get(BBC_MEDAL_URL, headers=headers, timeout=15)
+    r.raise_for_status()
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    medal_table = soup.find("table")
+    if not medal_table:
+        raise ValueError("Could not find medal table on BBC Sport page")
+
     medals = {}
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        page.goto(URL)
-        page.wait_for_timeout(5000)  # wait 5 seconds for table to load
-
-        html = page.content()
-        browser.close()
-
-    soup = BeautifulSoup(html, "html.parser")
-
-    # Adjust selector if needed; this usually finds the table rows
-    rows = soup.find_all("tr")
-    for row in rows[1:]:
+    for row in medal_table.find_all("tr")[1:]:
         cols = row.find_all("td")
-        if len(cols) < 6:
+        if len(cols) < 5:
             continue
-        country_code = cols[1].text.strip()
+
+        country_name = cols[0].get_text(strip=True)
+        code = COUNTRY_TO_IOC.get(country_name)
+        if not code:
+            print(f" No IOC mapping for: {country_name}")
+            continue
+
         try:
-            gold = int(cols[2].text.strip())
-            silver = int(cols[3].text.strip())
-            bronze = int(cols[4].text.strip())
-            total = int(cols[5].text.strip())
+            gold = int(cols[1].get_text(strip=True))
+            silver = int(cols[2].get_text(strip=True))
+            bronze = int(cols[3].get_text(strip=True))
+            total = int(cols[4].get_text(strip=True))
         except ValueError:
             continue
 
-        medals[country_code] = {
+        medals[code] = {
             "gold": gold,
             "silver": silver,
             "bronze": bronze,
@@ -50,11 +85,13 @@ def fetch_medal_data():
     return medals
 
 def load_participants():
+    """Load participants from JSON file. Each participant has 'name' and 'countries' (list of IOC codes)."""
     with open("participants.json") as f:
         return json.load(f)
 
 def compute_scores(participants, medals):
-    board = []
+    """Compute each participant's medal totals based on their countries."""
+    leaderboard = []
     for p in participants:
         row = {"name": p["name"], "gold":0,"silver":0,"bronze":0,"total":0}
         for c in p["countries"]:
@@ -63,15 +100,16 @@ def compute_scores(participants, medals):
             row["silver"] += m["silver"]
             row["bronze"] += m["bronze"]
             row["total"] += m["total"]
-        board.append(row)
+        leaderboard.append(row)
 
-    # Rank: total first, then gold, then silver
-    board.sort(key=lambda x: (x["total"], x["gold"], x["silver"]), reverse=True)
-    for i, r in enumerate(board, start=1):
+    # Sort by total, then gold, then silver
+    leaderboard.sort(key=lambda x: (x["total"], x["gold"], x["silver"]), reverse=True)
+    for i, r in enumerate(leaderboard, start=1):
         r["rank"] = i
-    return board
+    return leaderboard
 
 def build_html(leaderboard):
+    """Generate index.html leaderboard page."""
     updated = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     rows_html = ""
     for r in leaderboard:
@@ -120,7 +158,7 @@ def build_html(leaderboard):
         f.write(html)
 
 def main():
-    medals = fetch_medal_data()
+    medals = fetch_medal_data_bbc()
     participants = load_participants()
     leaderboard = compute_scores(participants, medals)
     build_html(leaderboard)
