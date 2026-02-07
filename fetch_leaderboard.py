@@ -6,35 +6,6 @@ from datetime import datetime
 # URL of BBC Sport 2026 Winter Olympics medal table
 BBC_MEDAL_URL = "https://www.bbc.co.uk/sport/winter-olympics/italy-2026/medals"
 
-# Mapping from country name (BBC) → IOC code
-COUNTRY_TO_IOC = {
-    "United States": "USA",
-    "Great Britain": "GBR",
-    "Norway": "NOR",
-    "Germany": "GER",
-    "Italy": "ITA",
-    "Canada": "CAN",
-    "France": "FRA",
-    "Sweden": "SWE",
-    "Switzerland": "SUI",
-    "Netherlands": "NED",
-    "Japan": "JPN",
-    "China": "CHN",
-    "South Korea": "KOR",
-    "Czech Republic": "CZE",
-    "Austria": "AUT",
-    "Slovenia": "SLO",
-    "Russia": "RUS",
-    "Finland": "FIN",
-    "Poland": "POL",
-    "Australia": "AUS",
-    "Belgium": "BEL",
-    "Hungary": "HUN",
-    "Spain": "ESP",
-    "Latvia": "LAT"
-    # add more as needed
-}
-
 def fetch_medal_data_bbc():
     """Scrape BBC Sport medal table for 2026 Winter Olympics."""
     headers = {
