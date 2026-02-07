@@ -58,14 +58,14 @@ def fetch_medal_data_bbc():
     medals = {}
     for row in medal_table.find_all("tr")[1:]:
         cols = row.find_all("td")
-        if len(cols) < 5:
+        if len(cols) < 6:
             continue
-
-        country_name = " ".join(cols[1].get_text(strip=True).replace("\xa0", " ").split())
-        code = COUNTRY_TO_IOC.get(country_name)
-        if not code:
-            print(f"⚠️ No IOC mapping for: {country_name}")
-            continue
+    
+        country_td = cols[1]
+        raw_text = "".join(country_td.stripped_strings)
+    
+        # First 3 characters are the IOC code
+        ioc = raw_text[:3].upper()
     
         try:
             gold = int(cols[2].get_text(strip=True))
@@ -75,7 +75,7 @@ def fetch_medal_data_bbc():
         except ValueError:
             continue
     
-        medals[code] = {
+        medals[ioc] = {
             "gold": gold,
             "silver": silver,
             "bronze": bronze,
