@@ -9,40 +9,43 @@ HEADERS = {"User-Agent": "Mozilla/5.0"}  # pretend to be a browser
 
 def fetch_medal_data():
     """
-    Scrape the official Olympics page and return a dict of medals by country code.
+    Scrape the official Olympics 2026 medal table using headers to bypass 403.
     """
-    res = requests.get(URL, headers=HEADERS)
-    res.raise_for_status()
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/116.0.0.0 Safari/537.36",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Referer": "https://www.google.com/"
+    }
+
+    session = requests.Session()
+    res = session.get(URL, headers=headers)
+    res.raise_for_status()  # will raise HTTPError if forbidden or error
 
     soup = BeautifulSoup(res.text, "html.parser")
 
-    # The table rows for countries
-    # Inspect the page — find class="MedalsTable_row__..." or similar
-    rows = soup.find_all("tr")  # fallback: all table rows
-
+    rows = soup.find_all("tr")
     medals = {}
-
-    for row in rows[1:]:  # skip header
+    for row in rows[1:]:
         cols = row.find_all("td")
         if len(cols) < 6:
-            continue  # skip invalid rows
-
-        country_code = cols[1].text.strip()  # 3-letter IOC code
+            continue
+        country_code = cols[1].text.strip()
         try:
             gold = int(cols[2].text.strip())
             silver = int(cols[3].text.strip())
             bronze = int(cols[4].text.strip())
             total = int(cols[5].text.strip())
         except ValueError:
-            continue  # skip rows with non-numeric medals
-
+            continue
         medals[country_code] = {
             "gold": gold,
             "silver": silver,
             "bronze": bronze,
             "total": total
         }
-
     return medals
 
 def load_participants():
