@@ -2,32 +2,31 @@ import json
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+from playwright.sync_api import sync_playwright
 
 # Official 2026 Winter Olympics medal table
 URL = "https://www.olympics.com/en/milano-cortina-2026/medals"
-HEADERS = {"User-Agent": "Mozilla/5.0"}  # pretend to be a browser
 
 def fetch_medal_data():
     """
-    Scrape the official Olympics 2026 medal table using headers to bypass 403.
+    Uses Playwright to render the page and extract current 2026 medals.
+    Returns a dictionary of {country_code: {"gold":.., "silver":.., "bronze":.., "total":..}}
     """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                      "AppleWebKit/537.36 (KHTML, like Gecko) "
-                      "Chrome/116.0.0.0 Safari/537.36",
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Referer": "https://www.google.com/"
-    }
-
-    session = requests.Session()
-    res = session.get(URL, headers=headers)
-    res.raise_for_status()  # will raise HTTPError if forbidden or error
-
-    soup = BeautifulSoup(res.text, "html.parser")
-
-    rows = soup.find_all("tr")
     medals = {}
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto(URL)
+        page.wait_for_timeout(5000)  # wait 5 seconds for table to load
+
+        html = page.content()
+        browser.close()
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    # Adjust selector if needed; this usually finds the table rows
+    rows = soup.find_all("tr")
     for row in rows[1:]:
         cols = row.find_all("td")
         if len(cols) < 6:
@@ -40,12 +39,14 @@ def fetch_medal_data():
             total = int(cols[5].text.strip())
         except ValueError:
             continue
+
         medals[country_code] = {
             "gold": gold,
             "silver": silver,
             "bronze": bronze,
             "total": total
         }
+
     return medals
 
 def load_participants():
