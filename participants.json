@@ -1,0 +1,7 @@
+[
+  {"name": "Evelyn", "countries": ["SUI","NED","FIN","SWR"]},
+  {"name": "George", "countries": ["GER","CHN","NOR","GBR"]},
+  {"name": "Edward", "countries": ["USA","POL","ITA","FRA"]},
+  {"name": "Mummy", "countries": ["SLO","AUS","KOR","CRO"]},
+  {"name": "Daddy", "countries": ["JPN","AUT","CZE","CAN"]}
+]
