@@ -37,6 +37,8 @@ def fetch_medal_data_bbc():
     
         # First 3 characters are the IOC code
         ioc = raw_text[:3].upper()
+
+        print(ioc)
     
         try:
             gold = int(cols[2].get_text(strip=True))
